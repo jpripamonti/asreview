@@ -437,6 +437,23 @@ def test_identify_record_groups_default_extractors():
     assert set(result) == {(0, 0), (0, 1), (0, 2), (3, 3), (3, 4), (5, 5)}
 
 
+def test_identify_record_groups_records_without_text():
+    """Records without title and abstract should not be grouped together."""
+    records = [
+        Record("ds1", 0, title="", abstract=""),
+        Record("ds1", 1),
+        Record("ds1", 2, title="A title"),
+        Record("ds1", 3, title="a title"),
+        Record("ds1", 4, title=" ", abstract=None),
+    ]
+    for i, record in enumerate(records):
+        record.record_id = i
+
+    result = identify_record_groups(records)
+
+    assert set(result) == {(0, 0), (1, 1), (2, 2), (2, 3), (4, 4)}
+
+
 @pytest.fixture
 def large_store(tmpdir):
     n = SQLITE_MAX_VARIABLE_NUMBER + 100

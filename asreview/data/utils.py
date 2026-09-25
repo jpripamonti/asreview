@@ -255,10 +255,16 @@ def identify_record_groups(records, feature_extractors=DEFAULT_EXTRACTORS):
         A list of tuples `(group_id, record_id)`, where two records get the same value
         for `group_id` if they have identical features.
     """
-    groups = identify_groups(
-        tuple(feature_extractor(record) for feature_extractor in feature_extractors)
-        for record in records
-    )
+    # Records without any features (e.g. no title and no abstract) can't be
+    # recognized as duplicates. Give each of them a unique key so they don't all
+    # end up in one group.
+    features = []
+    for idx, record in enumerate(records):
+        feature = tuple(extractor(record) for extractor in feature_extractors)
+        if all(value is None or value == "" for value in feature):
+            feature = ("__no_features__", idx)
+        features.append(feature)
+    groups = identify_groups(features)
     index_to_id = [record.record_id for record in records]
     return [
         (index_to_id[group_id], index_to_id[record_id])
