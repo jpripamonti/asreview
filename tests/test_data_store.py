@@ -409,6 +409,10 @@ def test_load_dataset_grouped(tmpdir):
         ("\ufb01nding", "finding"),
         # Mixed
         ("  Héllo,  Wörld!  ", "helloworld"),
+        # Non-Latin scripts are kept
+        ("COVID-19患者的焦虑", "covid19患者的焦虑"),
+        ("Тревожность у пациентов", "тревожностьупациентов"),
+        ("Ανασκόπηση", "ανασκοπηση"),
     ],
 )
 def test_clean_text(text, expected):
@@ -452,6 +456,33 @@ def test_identify_record_groups_records_without_text():
     result = identify_record_groups(records)
 
     assert set(result) == {(0, 0), (1, 1), (2, 2), (2, 3), (4, 4)}
+
+
+def test_identify_record_groups_non_latin():
+    """Records in non-Latin scripts are only grouped when their text matches."""
+    records = [
+        Record("ds1", 0, title="COVID-19患者的焦虑"),
+        Record("ds1", 1, title="COVID-19疫苗接种意愿"),
+        Record("ds1", 2, title="Тревожность"),
+        Record("ds1", 3, title="Депрессия"),
+        Record("ds1", 4, title="COVID-19 患者的焦虑。"),
+    ]
+    for i, record in enumerate(records):
+        record.record_id = i
+
+    result = identify_record_groups(records)
+
+    assert set(result) == {(0, 0), (1, 1), (2, 2), (3, 3), (0, 4)}
+
+
+def test_identify_record_groups_generator():
+    records = [Record("ds1", i, title=title) for i, title in enumerate("ABA")]
+    for i, record in enumerate(records):
+        record.record_id = i
+
+    result = identify_record_groups(record for record in records)
+
+    assert set(result) == {(0, 0), (1, 1), (0, 2)}
 
 
 @pytest.fixture

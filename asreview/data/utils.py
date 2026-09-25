@@ -22,18 +22,17 @@ PANDAS_CSV_MAX_CELL_LIMIT = 131072
 def _clean_text(text):
     """Normalize text for duplicate detection.
 
-    Removes whitespace, lowercases, and normalizes special characters
-    (e.g. accented letters, ligatures) to their ASCII equivalents.
+    Removes whitespace and punctuation, lowercases, and strips accents and
+    ligatures (e.g. é -> e, fi ligature -> fi). Letters and digits of all
+    scripts are kept, so non-Latin text isn't reduced to an empty string.
     """
     if not text:
         return ""
-    # Normalize unicode (e.g. é -> e, fi ligature -> fi)
     text = unicodedata.normalize("NFKD", text)
     text = text.lower()
-    # Keep only alphanumeric characters (removes punctuation, whitespace,
-    # and combining marks left over from NFKD decomposition)
-    text = re.sub(r"[^a-z0-9]", "", text)
-    return text
+    # Keep only letters and digits. This removes punctuation, whitespace, and the
+    # combining marks left over from the NFKD decomposition.
+    return "".join(char for char in text if char.isalnum())
 
 
 # Matches copyright/license notices that commonly appear at the end of abstracts.
@@ -255,6 +254,8 @@ def identify_record_groups(records, feature_extractors=DEFAULT_EXTRACTORS):
         A list of tuples `(group_id, record_id)`, where two records get the same value
         for `group_id` if they have identical features.
     """
+    records = list(records)
+
     # Records without any features (e.g. no title and no abstract) can't be
     # recognized as duplicates. Give each of them a unique key so they don't all
     # end up in one group.
